@@ -2,7 +2,9 @@ import { Readable } from "node:stream";
 
 const RELEASE_API_URL =
 	"https://api.github.com/repos/killercats1/webvm/releases/tags/ext2_image";
-const FALLBACK_DISK_URL = "https://github.com";
+const FALLBACK_DISK_URL =
+	"https://github.com/leaningtech/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2";
+const MIN_DISK_SIZE = 100 * 1024 * 1024;
 
 let cachedDiskUrl;
 let cachedDiskUrlExpiresAt = 0;
@@ -28,10 +30,11 @@ async function resolveDiskUrl() {
 			const diskAsset = assets.find((asset) =>
 				typeof asset.name === "string" &&
 				asset.name.toLowerCase().endsWith(".ext2") &&
-				typeof asset.browser_download_url === "string"
+				typeof asset.browser_download_url === "string" &&
+				(!Number.isFinite(asset.size) || asset.size >= MIN_DISK_SIZE)
 			);
 
-			if (diskAsset) {
+			if (diskAsset && await validateDiskUrl(diskAsset.browser_download_url)) {
 				cachedDiskUrl = diskAsset.browser_download_url;
 				cachedDiskUrlExpiresAt = Date.now() + 5 * 60 * 1000;
 				return cachedDiskUrl;
@@ -50,9 +53,51 @@ async function resolveDiskUrl() {
 		});
 	}
 
-	cachedDiskUrl = FALLBACK_DISK_URL;
-	cachedDiskUrlExpiresAt = Date.now() + 5 * 60 * 1000;
-	return cachedDiskUrl;
+	if (await validateDiskUrl(FALLBACK_DISK_URL)) {
+		cachedDiskUrl = FALLBACK_DISK_URL;
+		cachedDiskUrlExpiresAt = Date.now() + 5 * 60 * 1000;
+		return cachedDiskUrl;
+	}
+
+	throw new Error("No valid ext2 disk image is available");
+}
+
+async function validateDiskUrl(diskUrl) {
+	try {
+		const head = await fetch(diskUrl, {
+			method: "HEAD",
+			redirect: "follow"
+		});
+		if (!head.ok) return false;
+
+		const contentType = getHeader(head.headers, "content-type");
+		if (contentType && contentType.includes("text/html")) return false;
+
+		const range = await fetch(diskUrl, {
+			method: "GET",
+			headers: { Range: "bytes=1024-2047" },
+			redirect: "follow"
+		});
+		if (range.status !== 206) return false;
+
+		const contentRange = parseContentRange(getHeader(range.headers, "content-range"));
+		if (!contentRange || contentRange.size === null ||
+			contentRange.size < MIN_DISK_SIZE) {
+			return false;
+		}
+
+		const superblock = Buffer.from(await range.arrayBuffer());
+		if (superblock.length < 58) return false;
+
+		// The ext2 superblock starts at offset 1024; its magic value is at 1080.
+		return superblock.readUInt16LE(56) === 0xef53;
+	} catch (error) {
+		console.error("Disk asset validation failed", {
+			message: error instanceof Error ? error.message : String(error),
+			url: diskUrl
+		});
+		return false;
+	}
 }
 
 function getHeader(headers, name) {
@@ -95,6 +140,17 @@ function parseRange(range, size) {
 	return { start, end };
 }
 
+function parseContentRange(contentRange) {
+	if (!contentRange) return null;
+	const match = /^bytes (\d+)-(\d+)\/(\d+|\*)$/i.exec(contentRange.trim());
+	if (!match) return null;
+	return {
+		start: Number(match[1]),
+		end: Number(match[2]),
+		size: match[3] === "*" ? null : Number(match[3])
+	};
+}
+
 function sendError(res, status, message) {
 	if (res.headersSent) {
 		res.destroy();
@@ -127,8 +183,9 @@ export default async function handler(req, res) {
 		}
 
 		const upstreamHeaders = {};
-		if (req.headers.range) {
-			upstreamHeaders.Range = req.headers.range;
+		const requestRange = getHeader(req.headers, "range");
+		if (req.method === "GET" && requestRange) {
+			upstreamHeaders.Range = requestRange;
 		}
 
 		const diskUrl = await resolveDiskUrl();
@@ -149,25 +206,78 @@ export default async function handler(req, res) {
 			res.statusCode = 416;
 			res.setHeader("Content-Type", "application/octet-stream");
 			if (contentRange) res.setHeader("Content-Range", contentRange);
+			res.setHeader("Accept-Ranges", "bytes");
 			res.end();
 			return;
 		}
 
-		let status = upstream.status === 206 ? 206 : 200;
+		let status = 200;
 		let contentLength = getHeader(upstream.headers, "content-length");
 		let contentRange = getHeader(upstream.headers, "content-range");
 
-		if (req.headers.range) {
-			if (upstream.status === 206) {
-				status = 206;
-			} else if (contentLength) {
-				const size = Number(contentLength);
-				const range = parseRange(req.headers.range, size);
-				if (range) {
-					status = 206;
-					contentLength = String(range.end - range.start + 1);
-					contentRange = `bytes ${range.start}-${range.end}/${size}`;
+		if (req.method === "HEAD") {
+			status = 200;
+		} else if (requestRange) {
+			if (upstream.status !== 206) {
+				throw new Error(
+					`Range request was not honored by disk asset: upstream status ${upstream.status}`
+				);
+			}
+			status = 206;
+
+			const parsedContentRange = parseContentRange(contentRange);
+			if (!parsedContentRange) {
+				throw new Error("Disk asset returned 206 without a valid Content-Range");
+			}
+			if (parsedContentRange.size !== null) {
+				const requestedRange = parseRange(requestRange, parsedContentRange.size);
+				if (!requestedRange ||
+					requestedRange.start !== parsedContentRange.start ||
+					requestedRange.end !== parsedContentRange.end) {
+					throw new Error("Disk asset returned a mismatched 206 Content-Range");
 				}
+			}
+			if (!contentLength) {
+				contentLength = String(parsedContentRange.end - parsedContentRange.start + 1);
+			}
+			const expectedLength =
+				parsedContentRange.end - parsedContentRange.start + 1;
+			if (Number(contentLength) !== expectedLength) {
+				throw new Error("Disk asset returned mismatched 206 Content-Length");
+			}
+		}
+
+		if (req.method === "HEAD" && !contentLength) {
+			const sizeProbe = await fetch(diskUrl, {
+				method: "GET",
+				headers: { Range: "bytes=0-0" },
+				redirect: "follow"
+			});
+			if (sizeProbe.status === 206) {
+				const sizeRange = parseContentRange(
+					getHeader(sizeProbe.headers, "content-range")
+				);
+				if (sizeRange && sizeRange.size !== null) {
+					contentLength = String(sizeRange.size);
+				}
+				await sizeProbe.arrayBuffer();
+			}
+		}
+
+		if (req.method === "GET" && !requestRange && !contentLength) {
+			const sizeProbe = await fetch(diskUrl, {
+				method: "GET",
+				headers: { Range: "bytes=0-0" },
+				redirect: "follow"
+			});
+			if (sizeProbe.status === 206) {
+				const sizeRange = parseContentRange(
+					getHeader(sizeProbe.headers, "content-range")
+				);
+				if (sizeRange && sizeRange.size !== null) {
+					contentLength = String(sizeRange.size);
+				}
+				if (!sizeProbe.bodyUsed) await sizeProbe.arrayBuffer();
 			}
 		}
 
@@ -190,17 +300,6 @@ export default async function handler(req, res) {
 		if (!upstream.body) {
 			res.end();
 			return;
-		}
-
-		if (req.headers.range && status === 206 && upstream.status === 200) {
-			const size = Number(getHeader(upstream.headers, "content-length"));
-			const range = parseRange(req.headers.range, size);
-			if (range && typeof upstream.arrayBuffer === "function") {
-				const wholeBuffer = Buffer.from(await upstream.arrayBuffer());
-				const rangeBuffer = wholeBuffer.subarray(range.start, range.end + 1);
-				res.end(rangeBuffer);
-				return;
-			}
 		}
 
 		const nodeStream = Readable.fromWeb(upstream.body);
