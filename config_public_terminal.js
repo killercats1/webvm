@@ -1,5 +1,5 @@
 // The root OS image location, change to local filepath if serving locally
-export const diskImageUrl = "https://github.com/leaningtech/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2";
+export const diskImageUrl = "/disk.ext2";
 // The root filesystem backend type use "github" for a GitHub Release asset or "bytes" for a same-origin local file
 export const diskImageType = "bytes";
 // Print an introduction message about the technology
