@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/disk.ext2",
-      "destination": "https://github.com/leaningtech/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2"
+      "destination": "https://github.com/killercats1/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2"
     }
   ],
   "headers": [
