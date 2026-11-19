@@ -5,6 +5,7 @@ export default async function handler(req, res) {
 	res.setHeader("Access-Control-Allow-Origin", "*");
 	res.setHeader("Access-Control-Allow-Headers", "Range");
 	res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+	res.setHeader("Access-Control-Expose-Headers", "Accept-Ranges, Content-Length, Content-Range, ETag, Last-Modified");
 	res.setHeader("Accept-Ranges", "bytes");
 
 	if (req.method === "OPTIONS") {
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
 
 	let upstream;
 	try {
-		upstream = await fetch(DISK_URL, { headers, redirect: "follow" });
+		upstream = await fetch(DISK_URL, { method: req.method, headers, redirect: "follow" });
 	} catch (error) {
 		console.error("Failed to fetch disk image:", error);
 		res.statusCode = 502;
@@ -49,6 +50,12 @@ export default async function handler(req, res) {
 	if (contentLength) {
 		res.setHeader("Content-Length", contentLength);
 	}
+
+	const etag = upstream.headers.get("etag");
+	res.setHeader("ETag", etag || '"debian-mini-ext2-v1"');
+
+	const lastModified = upstream.headers.get("last-modified");
+	res.setHeader("Last-Modified", lastModified || "Fri, 19 May 2023 00:00:00 GMT");
 
 	if (req.method === "HEAD") {
 		res.end();
