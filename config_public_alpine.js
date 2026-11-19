@@ -1,5 +1,5 @@
 // The root filesystem location
-export const diskImageUrl = "/api/disk";
+export const diskImageUrl = "/api/disk?image=alpine";
 // The root filesystem backend type
 export const diskImageType = "bytes";
 // Print an introduction message about the technology
