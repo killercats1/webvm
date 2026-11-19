@@ -29,7 +29,7 @@ on:
         type: boolean
         description: 'Upload GitHub release'
         required: true
-        default: false
+        default: true
 
 jobs:
 

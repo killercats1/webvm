@@ -1,5 +1,44 @@
-const DISK_URL =
-	"https://github.com/leaningtech/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2";
+const RELEASE_API_URL =
+	"https://api.github.com/repos/killercats1/webvm/releases/tags/ext2_image";
+
+let cachedDiskUrl;
+let cachedDiskUrlExpiresAt = 0;
+
+async function resolveDiskUrl() {
+	if (cachedDiskUrl && Date.now() < cachedDiskUrlExpiresAt) {
+		return cachedDiskUrl;
+	}
+
+	const release = await fetch(RELEASE_API_URL, {
+		headers: {
+			Accept: "application/vnd.github+json",
+			"X-GitHub-Api-Version": "2022-11-28",
+			"User-Agent": "webvm-disk-proxy"
+		},
+		redirect: "follow"
+	});
+	if (!release.ok) {
+		throw new Error(`Failed to resolve GitHub release: ${release.status}`);
+	}
+
+	const data = await release.json();
+	const assets = Array.isArray(data.assets) ? data.assets : [];
+	const diskAsset = [...assets]
+		.reverse()
+		.find((asset) =>
+			typeof asset.name === "string" &&
+			asset.name.endsWith(".ext2") &&
+			typeof asset.browser_download_url === "string"
+		);
+
+	if (!diskAsset) {
+		throw new Error("No .ext2 asset found in the ext2_image release");
+	}
+
+	cachedDiskUrl = diskAsset.browser_download_url;
+	cachedDiskUrlExpiresAt = Date.now() + 5 * 60 * 1000;
+	return cachedDiskUrl;
+}
 
 export default async function handler(req, res) {
 	res.setHeader("Access-Control-Allow-Origin", "*");
@@ -28,7 +67,8 @@ export default async function handler(req, res) {
 
 	let upstream;
 	try {
-		upstream = await fetch(DISK_URL, { method: req.method, headers, redirect: "follow" });
+		const diskUrl = await resolveDiskUrl();
+		upstream = await fetch(diskUrl, { method: req.method, headers, redirect: "follow" });
 	} catch (error) {
 		console.error("Failed to fetch disk image:", error);
 		res.statusCode = 502;
