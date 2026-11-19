@@ -29,11 +29,6 @@ jobs:
             cd webvm/
             npm install
             npm run build
-      - run:
-          name: Deploy webvm
-          command: |
-            rsync -avz --chown circleci:runtimes webvm/build/ circleci@havana.leaningtech.com:webvm/
-
 workflows:
   deploy:
     when:

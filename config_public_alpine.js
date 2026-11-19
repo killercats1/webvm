@@ -1,7 +1,7 @@
 // The root filesystem location
-export const diskImageUrl = "wss://disks.webvm.io/alpine_20251007.ext2";
+export const diskImageUrl = "https://github.com/leaningtech/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2";
 // The root filesystem backend type
-export const diskImageType = "cloud";
+export const diskImageType = "github";
 // Print an introduction message about the technology
 export const printIntro = false;
 // Is a graphical display needed

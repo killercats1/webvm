@@ -12,7 +12,6 @@ export const introMessage = [
   "| CheerpX includes an x86-to-WebAssembly JIT compiler, a virtual block-based  |",
   "| file system, and a Linux syscall emulator.                                  |",
   "|                                                                             |",
-  "| Try out the new Alpine / Xorg / i3 WebVM: " + underline + "https://webvm.io/alpine.html" + normal + "      |",
   "|                                                                             |",
   "| [News] BrowserPod 4.0: the microVM in the browser, now free for any use     |",
   "| " + underline + "https://browserpod.io/blog/browserpod-40/" + normal + "                                   |",

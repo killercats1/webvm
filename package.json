@@ -9,7 +9,7 @@
 	"devDependencies": {
 		"@anthropic-ai/sdk": "^0.33.0",
 		"@fortawesome/fontawesome-free": "^6.6.0",
-		"@leaningtech/cheerpx": "latest",
+		"@leaningtech/cheerpx": "1.4.0",
 		"@oddbird/popover-polyfill": "^0.4.4",
 		"@sveltejs/adapter-auto": "^3.0.0",
 		"@sveltejs/adapter-static": "^3.0.5",
