@@ -1,5 +1,5 @@
 // The root OS image location, change to local filepath if serving locally
-export const diskImageUrl = "/disk.ext2";
+export const diskImageUrl = "/api/disk";
 // The root filesystem backend type use "github" for a GitHub Release asset or "bytes" for a same-origin local file
 export const diskImageType = "bytes";
 // Print an introduction message about the technology
