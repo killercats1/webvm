@@ -1,103 +1,10 @@
 import { Readable } from "node:stream";
 
-const RELEASE_API_URL =
-	"https://api.github.com/repos/killercats1/webvm/releases/tags/ext2_image";
-const FALLBACK_DISK_URL =
+const DISK_URL =
 	"https://github.com/leaningtech/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2";
-const MIN_DISK_SIZE = 100 * 1024 * 1024;
-
-let cachedDiskUrl;
-let cachedDiskUrlExpiresAt = 0;
 
 async function resolveDiskUrl() {
-	if (cachedDiskUrl && Date.now() < cachedDiskUrlExpiresAt) {
-		return cachedDiskUrl;
-	}
-
-	try {
-		const release = await fetch(RELEASE_API_URL, {
-			headers: {
-				Accept: "application/vnd.github+json",
-				"X-GitHub-Api-Version": "2022-11-28",
-				"User-Agent": "webvm-proxy"
-			},
-			redirect: "follow"
-		});
-
-		if (release.ok) {
-			const data = await release.json();
-			const assets = Array.isArray(data.assets) ? data.assets : [];
-			const diskAsset = assets.find((asset) =>
-				typeof asset.name === "string" &&
-				asset.name.toLowerCase().endsWith(".ext2") &&
-				typeof asset.browser_download_url === "string" &&
-				(!Number.isFinite(asset.size) || asset.size >= MIN_DISK_SIZE)
-			);
-
-			if (diskAsset && await validateDiskUrl(diskAsset.browser_download_url)) {
-				cachedDiskUrl = diskAsset.browser_download_url;
-				cachedDiskUrlExpiresAt = Date.now() + 5 * 60 * 1000;
-				return cachedDiskUrl;
-			}
-		} else {
-			console.error("GitHub release lookup returned an error", {
-				status: release.status,
-				url: RELEASE_API_URL
-			});
-		}
-	} catch (error) {
-		console.error("GitHub release lookup failed", {
-			message: error instanceof Error ? error.message : String(error),
-			stack: error instanceof Error ? error.stack : undefined,
-			url: RELEASE_API_URL
-		});
-	}
-
-	if (await validateDiskUrl(FALLBACK_DISK_URL)) {
-		cachedDiskUrl = FALLBACK_DISK_URL;
-		cachedDiskUrlExpiresAt = Date.now() + 5 * 60 * 1000;
-		return cachedDiskUrl;
-	}
-
-	throw new Error("No valid ext2 disk image is available");
-}
-
-async function validateDiskUrl(diskUrl) {
-	try {
-		const head = await fetch(diskUrl, {
-			method: "HEAD",
-			redirect: "follow"
-		});
-		if (!head.ok) return false;
-
-		const contentType = getHeader(head.headers, "content-type");
-		if (contentType && contentType.includes("text/html")) return false;
-
-		const range = await fetch(diskUrl, {
-			method: "GET",
-			headers: { Range: "bytes=1024-2047" },
-			redirect: "follow"
-		});
-		if (range.status !== 206) return false;
-
-		const contentRange = parseContentRange(getHeader(range.headers, "content-range"));
-		if (!contentRange || contentRange.size === null ||
-			contentRange.size < MIN_DISK_SIZE) {
-			return false;
-		}
-
-		const superblock = Buffer.from(await range.arrayBuffer());
-		if (superblock.length < 58) return false;
-
-		// The ext2 superblock starts at offset 1024; its magic value is at 1080.
-		return superblock.readUInt16LE(56) === 0xef53;
-	} catch (error) {
-		console.error("Disk asset validation failed", {
-			message: error instanceof Error ? error.message : String(error),
-			url: diskUrl
-		});
-		return false;
-	}
+	return DISK_URL;
 }
 
 function getHeader(headers, name) {
