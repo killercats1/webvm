@@ -12,7 +12,7 @@ async function handleFetch(request) {
 	// We add headers to the original response its headers, in order to enable cross-origin-isolation. And make it independent of the server config.
 	const newHeaders = new Headers(r.headers);
 	// COEP & COOP for cross-origin-isolation.
-	newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
+	newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless");
 	newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
 	newHeaders.set("Cross-Origin-Resource-Policy", "cross-origin");
 	/**
