@@ -1,7 +1,7 @@
 // The root filesystem location
-export const diskImageUrl = "wss://disks.webvm.io/alpine_20251007.ext2";
+export const diskImageUrl = "/custom-disk-images/alpine_20251007.ext2";
 // The root filesystem backend type
-export const diskImageType = "cloud";
+export const diskImageType = "bytes";
 // Print an introduction message about the technology
 export const printIntro = false;
 // Is a graphical display needed

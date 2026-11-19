@@ -128,7 +128,6 @@
 			</div>
 			<hr class="border-t border-solid border-gray-300">
 			<div class="pt-1 pb-1">
-				<a href="https://leaningtech.com/" target="”_blank”">© 2022-2025 Leaning Technologies</a>
 			</div>
 		</div>
 	</div>
