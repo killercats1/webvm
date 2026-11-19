@@ -1,10 +1,14 @@
 import { Readable } from "node:stream";
 
-const DISK_URL =
+const DEBIAN_DISK_URL =
 	"https://github.com/leaningtech/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2";
+const ALPINE_DISK_URL =
+	"https://github.com/leaningtech/webvm/releases/download/ext2_image/alpine_20251007.ext2";
 
-async function resolveDiskUrl() {
-	return DISK_URL;
+async function resolveDiskUrl(req) {
+	return getHeader(req.query, "image") === "alpine"
+		? ALPINE_DISK_URL
+		: DEBIAN_DISK_URL;
 }
 
 function getHeader(headers, name) {
@@ -95,7 +99,7 @@ export default async function handler(req, res) {
 			upstreamHeaders.Range = requestRange;
 		}
 
-		const diskUrl = await resolveDiskUrl();
+		const diskUrl = await resolveDiskUrl(req);
 		const upstream = await fetch(diskUrl, {
 			method: req.method,
 			headers: upstreamHeaders,
@@ -194,10 +198,20 @@ export default async function handler(req, res) {
 		if (contentLength) res.setHeader("Content-Length", contentLength);
 
 		const etag = getHeader(upstream.headers, "etag");
-		res.setHeader("ETag", etag || '"debian-mini-ext2-v1"');
+		res.setHeader(
+			"ETag",
+			etag || (diskUrl === ALPINE_DISK_URL
+				? '"alpine-ext2-v1"'
+				: '"debian-mini-ext2-v1"')
+		);
 
 		const lastModified = getHeader(upstream.headers, "last-modified");
-		res.setHeader("Last-Modified", lastModified || "Fri, 19 May 2023 00:00:00 GMT");
+		res.setHeader(
+			"Last-Modified",
+			lastModified || (diskUrl === ALPINE_DISK_URL
+				? "Fri, 07 Oct 2025 00:00:00 GMT"
+				: "Fri, 19 May 2023 00:00:00 GMT")
+		);
 
 		if (req.method === "HEAD") {
 			res.end();
