@@ -1,10 +1,11 @@
-FROM --platform=linux/386 docker.io/i386/debian:buster
+FROM --platform=linux/386 docker.io/i386/debian:bookworm
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Point APT to the archived mirrors (Buster is EOL)
-RUN echo "deb [trusted=yes] http://archive.debian.org/debian buster main contrib non-free" \
+# Use the supported Bookworm mirrors for i386 packages.
+RUN rm -f /etc/apt/sources.list.d/debian.sources && \
+	echo "deb [trusted=yes] http://deb.debian.org/debian bookworm main contrib non-free" \
   > /etc/apt/sources.list && \
-	echo "deb [trusted=yes] http://archive.debian.org/debian-security buster/updates main" \
+	echo "deb [trusted=yes] http://deb.debian.org/debian-security bookworm-security main" \
 	>> /etc/apt/sources.list
 
 RUN apt-get clean && apt-get update && apt-get -y upgrade
