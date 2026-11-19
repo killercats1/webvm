@@ -8,8 +8,14 @@ RUN rm -f /etc/apt/sources.list.d/debian.sources && \
 	echo "deb [trusted=yes] http://deb.debian.org/debian-security bookworm-security main" \
 	>> /etc/apt/sources.list
 
-RUN apt-get clean && apt-get update && apt-get -y upgrade
-RUN apt-get -y install apt-utils gcc \
+RUN apt-get clean; \
+	for attempt in 1 2 3 4 5; do \
+		if apt-get -o Acquire::Retries=5 update; then break; fi; \
+		if [ "$attempt" = 5 ]; then exit 1; fi; \
+		sleep 10; \
+	done; \
+	apt-get -o Acquire::Retries=5 -y upgrade
+RUN apt-get -o Acquire::Retries=5 -y install apt-utils gcc \
 	sudo git curl htop neofetch nano python3-pip \
 	python3 vim unzip ruby nodejs \
 	fakeroot dbus base whiptail hexedit \
