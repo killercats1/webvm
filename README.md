@@ -3,9 +3,9 @@
 [![Discord server](https://img.shields.io/discord/988743885121548329?color=%235865F2&logo=discord&logoColor=%23fff)](https://discord.gg/yWRr2YnD9c)
 [![Issues](https://img.shields.io/github/issues/leaningtech/webvm)](https://github.com/leaningtech/webvm/issues)
 
-This repository hosts the source code for [https://webvm.io](https://webvm.io), a Linux virtual machine that runs in your browser.
+This repository hosts a forkable WebVM application, a Linux virtual machine that runs in your browser.
 
-Try out the new Alpine / Xorg / i3 graphical environment: [https://webvm.io/alpine.html](https://webvm.io/alpine.html)
+Try out the Alpine / Xorg / i3 graphical environment through the `/alpine` route.
 
 <img src="/assets/welcome_to_WebVM_alpine_2024.png" width="90%">
 
@@ -32,7 +32,7 @@ WebVM is powered by the **CheerpX** virtualization engine, which provides:
 - [License](#license)
 
 > [!NOTE]
-> Visit [https://webvm.io](https://webvm.io) to get started immediately in your browser. No setup required.
+> Deploy the application and visit its root route to get started. No setup required.
 >
 > For local setup, custom image builds, and fork/deploy guidance, see [Development & Customization](#development--customization).
 
@@ -67,7 +67,7 @@ To access the public internet from WebVM, set up an **Exit Node** on another dev
 As an alternative to interactive login, add your Tailscale auth key to the URL fragment:
 
 ```
-https://webvm.io/#authKey=<your-ephemeral-key>
+<your-deployed-url>/#authKey=<your-ephemeral-key>
 ```
 
 This is equivalent to Tailscale's `--login-server` option.
@@ -211,20 +211,19 @@ To access Claude AI, you need an API key. Follow these steps to get started:
 
 **Articles & Resources:**
 
-- [WebVM: Server-less x86 virtual machines in the browser](https://leaningtech.com/webvm-server-less-x86-virtual-machines-in-the-browser/)
-- [WebVM: Linux Virtualization in WebAssembly with Full Networking via Tailscale](https://leaningtech.com/webvm-virtual-machine-with-networking-via-tailscale/)
-- [Mini.WebVM: Your own Linux box from Dockerfile, virtualized in the browser via WebAssembly](https://leaningtech.com/mini-webvm-your-linux-box-from-dockerfile-via-wasm/)
+- [WebVM: Server-less x86 virtual machines in the browser](https://cheerpx.io/)
+- [WebVM: Linux Virtualization in WebAssembly with Full Networking via Tailscale](https://cheerpx.io/)
+- [Mini.WebVM: Your own Linux box from Dockerfile, virtualized in the browser via WebAssembly](https://cheerpx.io/)
 - [Crafting the Impossible: X86 Virtualization in the Browser with WebAssembly](https://www.youtube.com/watch?v=VqrbVycTXmw) — Talk at JsNation 2022
 
 **Example Deployment:**
 
-- [Mini.WebVM Reference](https://mini.webvm.io) — A running example deployed to GitHub Pages
 
 **Technology Behind WebVM:**
 
 This project is powered by:
 
-- **[CheerpX](https://cheerpx.io/)** — x86-to-WebAssembly JIT compiler | by [Leaning Technologies](https://leaningtech.com/)
+- **[CheerpX](https://cheerpx.io/)** — x86-to-WebAssembly JIT compiler
 - **[xterm.js](https://xtermjs.org/)** — Web-based terminal emulator
 - **[Tailscale](https://tailscale.com/)** — VPN networking layer
 - **[lwIP](https://savannah.nongnu.org/projects/lwip/)** — TCP/IP stack, compiled for the Web via [Cheerp](https://github.com/leaningtech/cheerp-meta/)
