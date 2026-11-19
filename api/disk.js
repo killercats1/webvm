@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 const DEBIAN_DISK_URL =
 	"https://github.com/leaningtech/webvm/releases/download/ext2_image/debian_mini_20230519_5022088024.ext2";
 const ALPINE_DISK_URL =
-	"https://github.com/leaningtech/webvm/releases/download/ext2_image/alpine_20251007.ext2";
+	"https://github.com/leaningtech/alpine-image/releases/download/ext2_image/alpine_20251007.ext2";
 
 async function resolveDiskUrl(req) {
 	return getHeader(req.query, "image") === "alpine"
